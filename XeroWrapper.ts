@@ -2,16 +2,28 @@ import { XeroClient } from "xero-node";
 import type { IXeroClientConfig } from "xero-node";
 
 type LoggerFunctionType = (msg, level?: number) => void
-class XeroWrapper {
+type InitParamsType = {
+    clientId: IXeroClientConfig['clientId'],
+    clientSecret: IXeroClientConfig['clientSecret'],
+    loggerFunction?: LoggerFunctionType
+}
+
+export default class XeroWrapper {
     #client: XeroClient;
     #loggerFunction: LoggerFunctionType
+    #refreshPromise: Promise<void>
 
-    constructor({ clientId, clientSecret, loggerFunction }: {
-        clientId: IXeroClientConfig['clientId'],
-        clientSecret: IXeroClientConfig['clientSecret'],
-        loggerFunction?: LoggerFunctionType
+    constructor(params?: InitParamsType, acknowledgeNullParams = false) {
+        if (!params) {
+            if (!acknowledgeNullParams) throw new Error("XeroWrapper missing parameters without acknowledgement")
+        } else {
+            this.init(params)
+        }
     }
+
+    init({ clientId, clientSecret, loggerFunction }: InitParamsType
     ) {
+        if (this.#client) throw new Error("XeroWrapper already initialised")
         this.#client = new XeroClient({
             clientId,
             clientSecret,
@@ -19,8 +31,6 @@ class XeroWrapper {
         })
 
         if (loggerFunction) this.#loggerFunction = loggerFunction
-
-
     }
 
     setLogger(loggerFunction: LoggerFunctionType) {
@@ -36,12 +46,24 @@ class XeroWrapper {
 
         let auth = this.#client.readTokenSet()
         if (!auth || auth.expired()) {
-            if (!auth) this.#log("Requesting Xero token")
-            else this.#log("Xero token expired, refreshing")
-            
-            /* TODO: Check if refresh in progress */
-            await this.#client.getClientCredentialsToken()
-            this.#log("Got new token")
+            if (!this.#refreshPromise) {
+                if (!auth) this.#log("Requesting Xero token")
+                else this.#log("Xero token expired, refreshing")
+
+                this.#refreshPromise = this.#client.getClientCredentialsToken()
+                    .then(() => {
+                        this.#log("Got new token")
+                    })
+                    .catch(() => {
+                        this.#log("Failed to get new token")
+                    }).finally(() => {
+                        this.#refreshPromise = null
+                    })
+            } else {
+                this.#log("Waiting for existing token request")
+            }
+
+            await this.#refreshPromise
         }
 
         return fn(this.#client)
