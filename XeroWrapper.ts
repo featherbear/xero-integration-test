@@ -8,10 +8,17 @@ type InitParamsType = {
     loggerFunction?: LoggerFunctionType
 }
 
-export default class XeroWrapper {
+export class XeroWrapper {
     #client: XeroClient;
     #loggerFunction: LoggerFunctionType
     #refreshPromise: Promise<void>
+
+    /**
+     * Could turn this into a decorator, but then I need to enable some experimental flags
+     */
+    #assertInit() {
+        if (!this.#client) throw new Error("XeroWrapper not initialised")
+    }
 
     constructor(params?: InitParamsType, acknowledgeNullParams = false) {
         if (!params) {
@@ -24,6 +31,7 @@ export default class XeroWrapper {
     init({ clientId, clientSecret, loggerFunction }: InitParamsType
     ) {
         if (this.#client) throw new Error("XeroWrapper already initialised")
+
         this.#client = new XeroClient({
             clientId,
             clientSecret,
@@ -31,6 +39,7 @@ export default class XeroWrapper {
         })
 
         if (loggerFunction) this.#loggerFunction = loggerFunction
+        this.#log('do init')
     }
 
     setLogger(loggerFunction: LoggerFunctionType) {
@@ -42,12 +51,15 @@ export default class XeroWrapper {
     }
 
 
-    async withXero(fn: (client: XeroClient) => Promise<any>): ReturnType<typeof fn> {
+    // >= TS4.5 - type T = Awaited<Promise<PromiseLike<number>> // => number 
+    // <= TS4.4 - type Awaited<T> = T extends PromiseLike<infer U> ? U : T
+    async withXero<T>(fn: (client: XeroClient) => T): Promise<T extends PromiseLike<infer ReturnType> ? ReturnType : T> {
+        this.#assertInit()
 
         let auth = this.#client.readTokenSet()
-        if (!auth || auth.expired()) {
+        if (!auth.access_token || auth.expired()) {
             if (!this.#refreshPromise) {
-                if (!auth) this.#log("Requesting Xero token")
+                if (!auth.access_token) this.#log("Requesting Xero token")
                 else this.#log("Xero token expired, refreshing")
 
                 this.#refreshPromise = this.#client.getClientCredentialsToken()
@@ -66,6 +78,8 @@ export default class XeroWrapper {
             await this.#refreshPromise
         }
 
-        return fn(this.#client)
+        return <any>fn(this.#client)
     }
 }
+
+export default XeroWrapper
