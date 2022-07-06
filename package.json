@@ -1,0 +1,21 @@
+{
+  "name": "xero-integration-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app.ts"
+  },
+  "repository": "git@github.com:featherbear/xero-integration-test.git",
+  "author": "Andrew Wong <andrew.j.wong@outlook.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "bunyan": "^1.8.15",
+    "xero-node": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/bunyan": "^1.8.8",
+    "nodemon": "^2.0.19",
+    "sucrase": "^3.23.0"
+  }
+}
