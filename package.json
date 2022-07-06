@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "test": "sucrase-node app.ts",
     "dev": "nodemon app.ts"
   },
   "repository": "git@github.com:featherbear/xero-integration-test.git",
@@ -11,6 +12,7 @@
   "private": true,
   "dependencies": {
     "bunyan": "^1.8.15",
+    "dotenv": "^16.0.1",
     "xero-node": "^4.21.0"
   },
   "devDependencies": {
