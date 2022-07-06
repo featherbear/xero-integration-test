@@ -5,46 +5,25 @@ globalThis.logger = bunyan.createLogger({
 })
 
 import dotenv from 'dotenv'
+import { writeFileSync, existsSync, readFileSync } from 'fs'
 dotenv.config()
 
-import { XeroClient } from 'xero-node'
+import withXero, { XeroClient } from './XeroClient'
 
-const xero = new XeroClient({
+XeroClient.init({
     clientId: process.env.XERO_CLIENT_ID,
     clientSecret: process.env.XERO_CLIENT_SECRET,
-    redirectUris: ["https://this_is_a_test/redir"],
-    scopes: [
-        "openid",
-        "profile",
-        "email",
-        "accounting.transactions",
-        "offline_access"
-    ]
+    loggerFunction(msg) {
+        logger.info(msg)
+    }
 })
 
 
-/*
-xero.buildConsentUrl().then(url => {
-    logger.info(url)
-})
-*/
+    ; (async function main() {
+        let invoices = withXero(
+            (xero) =>
+                xero.accountingApi.getInvoices("" /* empty tenant ID, but required from generated API */)
+        )
 
-/*
-const url = "..."
-
-xero.apiCallback(url).then(token => {
-    console.log(token);
-})
-*/
-
-const token = {
-    id_token: '...',
-    /* 30 min expiry */
-    access_token: '...',
-    expires_at: 1657128627,
-    token_type: 'Bearer',
-    /* 60 day expiry */
-    refresh_token: '...',
-    scope: 'openid profile email accounting.transactions offline_access',
-    session_state: '...'
-}
+        logger.info(await invoices)
+    })();

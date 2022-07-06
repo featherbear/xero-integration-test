@@ -39,7 +39,6 @@ export class XeroWrapper {
         })
 
         if (loggerFunction) this.#loggerFunction = loggerFunction
-        this.#log('do init')
     }
 
     setLogger(loggerFunction: LoggerFunctionType) {
