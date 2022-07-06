@@ -5,7 +5,6 @@ globalThis.logger = bunyan.createLogger({
 })
 
 import dotenv from 'dotenv'
-import { writeFileSync, existsSync, readFileSync } from 'fs'
 dotenv.config()
 
 import withXero, { XeroClient } from './XeroClient'
@@ -17,7 +16,6 @@ XeroClient.init({
         logger.info(msg)
     }
 })
-
 
     ; (async function main() {
         let invoices = withXero(
