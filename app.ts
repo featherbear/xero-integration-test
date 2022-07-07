@@ -29,7 +29,7 @@ XeroClient.init({
 
 server.get("/doIt", (req, res) => {
 
-    markAsPaid("30a87092-31b5-4a2c-831e-327486533dd2").catch(e => {
+    markAsPaid("f020625c-d46c-462d-b047-16f82d8df540").catch(e => {
         logger.error(e)
     })
     res.end("SENT")
@@ -38,14 +38,15 @@ server.get("/doIt", (req, res) => {
 const markAsPaid = (invoiceID: string) => withXero(async (xero) => {
     let account = (await __UNSAFE__getAccounts())[0]
 
-    let invoice = await getInvoice(invoiceID)
+    let invoice = await getInvoice(invoiceID, true)
+    logger.info(invoice)
     if (!invoice) throw new Error(`Invoice ${invoiceID} doesn't exist`)
     if (invoice.status !== Invoice.StatusEnum.AUTHORISED) throw new Error(`Invoice ${invoiceID} isn't ready to accept payments`)
 
     xero.accountingApi.createPayment('', {
         account,
         invoice,
-        amount: invoice.amountDue,
+        amount: 1 || invoice.amountDue,
         reference: "XeroAPI",
         details: "DEETS",
         date: dayjs().format('YYYY-MM-DD')
@@ -60,14 +61,31 @@ const __UNSAFE__getAccounts = () => withXero(async (xero) => {
 
 
 const getInvoices = () => withXero(
-    (xero) => xero.accountingApi.getInvoices("" /* empty tenant ID, but required from generated API */)
+    async (xero) => {
+        let resp = await xero.accountingApi.getInvoices("" /* empty tenant ID, but required from generated API */)
+        return resp?.body?.invoices
+    }
+
+    //https://authorize.xero.com/custom?consentId=ec8c1b4a-8692-43ad-96a3-18c38ee87e83
 )
 
-const getInvoice = (invoiceID: string) =>
+const getInvoice = (invoiceID: string, getURL: boolean = false) =>
     withXero(async (xero) => {
         let resp = await xero.accountingApi.getInvoice('', invoiceID)
-        return resp?.body?.invoices[0]
+        let invoice = resp?.body?.invoices?.[0]
+
+        if (invoice && getURL) {
+            let resp2 = await xero.accountingApi.getOnlineInvoice('', invoice.invoiceID)
+            invoice.url = resp2?.body?.onlineInvoices?.[0]?.onlineInvoiceUrl
+        }
+
+        return invoice
     })
+
+const __TEST__createInvoice = () => withXero(async (xero) => {
+    xero.accountingApi.createInvoices('',)
+})
+
 
 
 async function main() {
@@ -75,17 +93,10 @@ async function main() {
         logger.info(`Server listening`)
     })
 
-    // mark as paid
-    // 1a) Check that invoice is AUTHORISED 
-    // 1b) get outstanding balance
-    // 2) pay
-    // const markAsPaid = (invoiceID: string) => withXero((xero) => {
-    //     xero.accountingApi.createPayment('', {account: {}})
-    // })
 
-
-
-
+    let invoices = await getInvoices()
+    logger.info(invoices[0])
+    console.log(invoices[0].url);
 
 }
 
