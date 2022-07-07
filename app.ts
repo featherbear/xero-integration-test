@@ -38,8 +38,7 @@ server.get("/doIt", (req, res) => {
 const markAsPaid = (invoiceID: string) => withXero(async (xero) => {
     let account = (await __UNSAFE__getAccounts())[0]
 
-    let invoice = await getInvoice(invoiceID, true)
-    logger.info(invoice)
+    let invoice = await getInvoice(invoiceID)
     if (!invoice) throw new Error(`Invoice ${invoiceID} doesn't exist`)
     if (invoice.status !== Invoice.StatusEnum.AUTHORISED) throw new Error(`Invoice ${invoiceID} isn't ready to accept payments`)
 
@@ -83,7 +82,31 @@ const getInvoice = (invoiceID: string, getURL: boolean = false) =>
     })
 
 const __TEST__createInvoice = () => withXero(async (xero) => {
-    xero.accountingApi.createInvoices('',)
+    xero.accountingApi.createInvoices('', {
+        invoices: [{
+            type: Invoice.TypeEnum.ACCRECCREDIT,
+            contact: {
+                // ...
+            },
+            lineItems: [
+                {
+                    // ...
+                    description: "...",
+                    // discountAmount
+                    // discountRate
+
+                }
+            ],
+
+            ...{
+                /* Optional stuff */
+                // invoiceNumber
+                // reference
+                // sentToContact
+
+            }
+        }]
+    })
 })
 
 
